@@ -28,6 +28,11 @@ tasks:
       - kubectl create namespace forgejo --dry-run=client -o yaml | kubectl apply -f -
       - yoke takeoff --namespace forgejo forgejo dist/forgejo.wasm < values.yaml
 
+  password:
+    desc: Print the admin password from the cluster
+    cmds:
+      - kubectl get secret -n forgejo forgejo-admin -o jsonpath='{.data.password}' | base64 -d && echo
+
   clean:
     desc: Remove all forgejo releases and namespaces from the cluster
     cmds:
