@@ -5,6 +5,11 @@ env:
     sh: echo "$HOME/.kube/config"
 
 tasks:
+  setup:
+    desc: Install git hooks (run once after cloning)
+    cmds:
+      - lefthook install
+
   build:
     desc: Compile the flight to a wasm binary
     cmds:
