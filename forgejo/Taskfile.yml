@@ -14,10 +14,12 @@ tasks:
       - go test ./src/...
 
   diff:
+    deps: [build]
     cmds:
       - yoke takeoff -diff-only --namespace forgejo forgejo dist/forgejo.wasm < values.yaml
 
   deploy:
+    deps: [build]
     cmds:
       - kubectl create namespace forgejo --dry-run=client -o yaml | kubectl apply -f -
       - yoke takeoff --namespace forgejo forgejo dist/forgejo.wasm < values.yaml
@@ -32,6 +34,7 @@ tasks:
 
   e2e:
     desc: Deploy to cluster, verify healthy, tear down
+    deps: [build]
     vars:
       NS: forgejo-e2e
     cmds:
