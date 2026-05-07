@@ -6,19 +6,23 @@ env:
 
 tasks:
   build:
+    desc: Compile the flight to a wasm binary
     cmds:
       - make dist/forgejo.wasm
 
   test:
+    desc: Run unit tests
     cmds:
       - go test ./src/...
 
   diff:
+    desc: Preview changes against the running release
     deps: [build]
     cmds:
       - yoke takeoff -diff-only --namespace forgejo forgejo dist/forgejo.wasm < values.yaml
 
   deploy:
+    desc: Deploy to the forgejo namespace
     deps: [build]
     cmds:
       - kubectl create namespace forgejo --dry-run=client -o yaml | kubectl apply -f -
