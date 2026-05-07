@@ -81,7 +81,7 @@ func generateAppIni(domain string) (string, error) {
 	var buf bytes.Buffer
 	if err := appIniTmpl.Execute(&buf, struct {
 		Domain, LFSJWTSecret, InternalToken, SecretKey, JWTSecret string
-		HTTPPort                                                   int
+		HTTPPort, SSHPort                                          int
 	}{
 		Domain:        domain,
 		LFSJWTSecret:  lfsSecret,
@@ -89,6 +89,7 @@ func generateAppIni(domain string) (string, error) {
 		SecretKey:     secretKey,
 		JWTSecret:     jwtSecret,
 		HTTPPort:      httpPort,
+		SSHPort:       sshExternalPort,
 	}); err != nil {
 		return "", fmt.Errorf("failed to render app.ini: %w", err)
 	}
