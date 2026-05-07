@@ -1,4 +1,5 @@
 pre-commit:
   commands:
-    test:
+    forgejo-test:
+      root: forgejo/
       run: go test ./src/...
