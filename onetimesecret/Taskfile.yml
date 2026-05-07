@@ -1,0 +1,51 @@
+version: '3'
+
+env:
+  KUBECONFIG:
+    sh: echo "$HOME/.kube/config"
+
+tasks:
+  build:
+    desc: Compile the flight to a wasm binary
+    cmds:
+      - make dist/onetimesecret.wasm
+
+  test:
+    desc: Run unit tests
+    cmds:
+      - go test ./src/...
+
+  diff:
+    desc: Preview changes against the running release
+    deps: [build]
+    cmds:
+      - yoke takeoff -diff-only --namespace onetimesecret onetimesecret dist/onetimesecret.wasm < values.yaml
+
+  deploy:
+    desc: Deploy to the onetimesecret namespace
+    deps: [build]
+    cmds:
+      - kubectl create namespace onetimesecret --dry-run=client -o yaml | kubectl apply -f -
+      - yoke takeoff --namespace onetimesecret onetimesecret dist/onetimesecret.wasm < values.yaml
+      - kubectl rollout status deployment/onetimesecret-redis -n onetimesecret
+      - kubectl rollout status deployment/onetimesecret -n onetimesecret
+
+  clean:
+    desc: Remove all onetimesecret releases and namespaces from the cluster
+    cmds:
+      - yoke mayday --namespace onetimesecret onetimesecret || true
+      - kubectl delete namespace onetimesecret --ignore-not-found
+      - yoke mayday --namespace onetimesecret-e2e onetimesecret-e2e || true
+      - kubectl delete namespace onetimesecret-e2e --ignore-not-found
+
+  e2e:
+    desc: Deploy to cluster, verify healthy, tear down
+    deps: [build]
+    vars:
+      NS: onetimesecret-e2e
+    cmds:
+      - kubectl create namespace {{.NS}} --dry-run=client -o yaml | kubectl apply -f -
+      - defer: kubectl delete namespace {{.NS}} --ignore-not-found
+      - defer: yoke mayday --namespace {{.NS}} {{.NS}}
+      - yoke takeoff --namespace {{.NS}} {{.NS}} dist/onetimesecret.wasm < values.yaml
+      - kubectl wait --for=condition=available --timeout=180s deployment/{{.NS}} -n {{.NS}}

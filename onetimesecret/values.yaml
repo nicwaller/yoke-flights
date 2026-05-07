@@ -1,0 +1,14 @@
+domain: onetimesecret.local
+port: 3001
+serviceType: LoadBalancer
+colonel: admin@onetimesecret.local
+ssl: false
+smtpHost: ""
+smtpPort: 587
+smtpUsername: ""
+smtpPassword: ""
+fromEmail: no-reply@onetimesecret.local
+authSignup: true
+authSignin: true
+redisStorageClass: local-path
+redisStorageSize: 1Gi
