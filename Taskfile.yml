@@ -10,3 +10,4 @@ tasks:
     desc: Run all flight tests
     cmds:
       - task -d forgejo test
+      - task -d onetimesecret test
