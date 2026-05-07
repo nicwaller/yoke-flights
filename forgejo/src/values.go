@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"slices"
+	"strings"
 
 	corev1 "k8s.io/api/core/v1"
 )
@@ -45,6 +46,9 @@ var validServiceTypes = map[corev1.ServiceType]bool{
 }
 
 func (v Values) validate() error {
+	if strings.Contains(v.Domain, ":") {
+		return fmt.Errorf("domain %q must not include a port", v.Domain)
+	}
 	if slices.Contains(reservedUsernames, v.AdminUsername) {
 		return fmt.Errorf("adminUsername %q is reserved by Forgejo", v.AdminUsername)
 	}

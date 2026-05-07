@@ -29,6 +29,14 @@ func TestValidateInvalidSSHServiceType(t *testing.T) {
 	}
 }
 
+func TestValidateDomainWithPort(t *testing.T) {
+	v := defaults
+	v.Domain = "forgejo.local:3000"
+	if err := v.validate(); err == nil {
+		t.Fatal("expected error for domain containing a port")
+	}
+}
+
 func TestValidateReservedAdminUsername(t *testing.T) {
 	for _, name := range []string{"admin", "api", "explore", "user", "org"} {
 		v := defaults
