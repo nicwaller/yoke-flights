@@ -17,7 +17,7 @@ const (
 	forgejoUID      = 1000
 	httpPort        = 3000
 	sshListenPort   = 2222
-	sshExternalPort = 22
+	sshExternalPort = 2222
 )
 
 const initDirsScript = `mkdir -p /data/git/.ssh /data/gitea/conf /tmp/gitea &&
