@@ -1,0 +1,42 @@
+version: '3'
+
+env:
+  KUBECONFIG:
+    sh: echo "$HOME/.kube/config"
+
+tasks:
+  build:
+    cmds:
+      - make dist/forgejo.wasm
+
+  test:
+    cmds:
+      - go test ./src/...
+
+  diff:
+    cmds:
+      - yoke takeoff -diff-only --namespace forgejo forgejo dist/forgejo.wasm < values.yaml
+
+  deploy:
+    cmds:
+      - kubectl create namespace forgejo --dry-run=client -o yaml | kubectl apply -f -
+      - yoke takeoff --namespace forgejo forgejo dist/forgejo.wasm < values.yaml
+
+  clean:
+    desc: Remove all forgejo releases and namespaces from the cluster
+    cmds:
+      - yoke mayday --namespace forgejo forgejo || true
+      - kubectl delete namespace forgejo --ignore-not-found
+      - yoke mayday --namespace forgejo-e2e forgejo-e2e || true
+      - kubectl delete namespace forgejo-e2e --ignore-not-found
+
+  e2e:
+    desc: Deploy to cluster, verify healthy, tear down
+    vars:
+      NS: forgejo-e2e
+    cmds:
+      - kubectl create namespace {{.NS}} --dry-run=client -o yaml | kubectl apply -f -
+      - defer: kubectl delete namespace {{.NS}} --ignore-not-found
+      - defer: yoke mayday --namespace {{.NS}} {{.NS}}
+      - yoke takeoff --namespace {{.NS}} {{.NS}} dist/forgejo.wasm < values.yaml
+      - kubectl wait --for=condition=available --timeout=180s deployment/{{.NS}} -n {{.NS}}

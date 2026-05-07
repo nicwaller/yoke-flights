@@ -1,0 +1,7 @@
+domain: forgejo.local
+storageClass: local-path
+storageSize: 10Gi
+adminUsername: gitadmin
+# adminPassword: generated and stable if omitted
+httpServiceType: LoadBalancer
+sshServiceType: LoadBalancer
