@@ -2,7 +2,8 @@ package main
 
 import (
 	"crypto/rand"
-	"encoding/base64"
+	"math/big"
+	"strings"
 
 	corev1 "k8s.io/api/core/v1"
 )
@@ -17,12 +18,19 @@ func envBase() []corev1.EnvVar {
 	}
 }
 
-func randomSecret(byteLen int) (string, error) {
-	b := make([]byte, byteLen)
-	if _, err := rand.Read(b); err != nil {
-		return "", err
+const secretCharset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*_+-"
+
+func randomSecret(length int) (string, error) {
+	n := big.NewInt(int64(len(secretCharset)))
+	var sb strings.Builder
+	for range length {
+		i, err := rand.Int(rand.Reader, n)
+		if err != nil {
+			return "", err
+		}
+		sb.WriteByte(secretCharset[i.Int64()])
 	}
-	return base64.StdEncoding.EncodeToString(b), nil
+	return sb.String(), nil
 }
 
 func ptr[T any](v T) *T { return &v }
