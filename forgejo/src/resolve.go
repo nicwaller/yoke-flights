@@ -81,12 +81,14 @@ func generateAppIni(domain string) (string, error) {
 	var buf bytes.Buffer
 	if err := appIniTmpl.Execute(&buf, struct {
 		Domain, LFSJWTSecret, InternalToken, SecretKey, JWTSecret string
+		HTTPPort                                                   int
 	}{
 		Domain:        domain,
 		LFSJWTSecret:  lfsSecret,
 		InternalToken: internalToken,
 		SecretKey:     secretKey,
 		JWTSecret:     jwtSecret,
+		HTTPPort:      httpPort,
 	}); err != nil {
 		return "", fmt.Errorf("failed to render app.ini: %w", err)
 	}

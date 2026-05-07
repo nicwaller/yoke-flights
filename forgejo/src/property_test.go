@@ -57,7 +57,7 @@ func TestPropertyAppIniReflectsDomain(t *testing.T) {
 		for _, want := range []string{
 			"DOMAIN = " + domain,
 			"SSH_DOMAIN = " + domain,
-			"ROOT_URL = http://" + domain + "/",
+			"ROOT_URL = http://" + domain + ":3000/",
 		} {
 			if !strings.Contains(ini, want) {
 				t.Errorf("app.ini missing %q", want)

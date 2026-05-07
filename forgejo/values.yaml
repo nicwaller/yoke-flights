@@ -1,4 +1,4 @@
-domain: forgejo.local:3000
+domain: forgejo.local
 storageClass: local-path
 storageSize: 10Gi
 adminUsername: gitadmin
