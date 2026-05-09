@@ -28,6 +28,14 @@ tasks:
       - kubectl create namespace argocd --dry-run=client -o yaml | kubectl apply -f -
       - yoke takeoff --namespace argocd argocd dist/argocd.wasm
 
+  dashboard:
+    desc: Start the ArgoCD UI (core mode, no API server required)
+    cmds:
+      - cmd: |
+          echo "Remote access: ssh -L 8080:localhost:8080 $(whoami)@$(hostname -I | awk '{print $1}')"
+        silent: true
+      - argocd admin dashboard --core --namespace argocd
+
   clean:
     desc: Remove the argocd release and namespace from the cluster
     cmds:
