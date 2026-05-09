@@ -5,3 +5,6 @@
 # Enable argocd-server for in-cluster UI, REST/gRPC API, and webhook support.
 # When false, use `argocd admin dashboard --core` to access the UI locally.
 server: true
+
+# Run argocd-server without TLS. Useful when accessed only within the cluster.
+serverInsecure: true

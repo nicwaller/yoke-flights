@@ -19,14 +19,14 @@ tasks:
     desc: Preview changes against the running release
     deps: [build]
     cmds:
-      - yoke takeoff -diff-only --namespace argocd argocd dist/argocd.wasm
+      - yoke takeoff -diff-only --namespace argocd argocd dist/argocd.wasm < values.yaml
 
   deploy:
     desc: Deploy to the argocd namespace
     deps: [build]
     cmds:
       - kubectl create namespace argocd --dry-run=client -o yaml | kubectl apply -f -
-      - yoke takeoff --namespace argocd argocd dist/argocd.wasm
+      - yoke takeoff --namespace argocd argocd dist/argocd.wasm < values.yaml
 
   password:
     desc: Print the initial admin password

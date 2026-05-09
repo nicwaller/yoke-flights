@@ -7,9 +7,13 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 )
 
-func buildDeploymentServer(ns string) appsv1.Deployment {
+func buildDeploymentServer(ns string, values Values) appsv1.Deployment {
 	labels := argoLabels("server", "argocd-server")
 	podLabels := map[string]string{"app.kubernetes.io/name": "argocd-server"}
+	args := []string{"/usr/local/bin/argocd-server", "--port=8080", "--metrics-port=8083"}
+	if values.ServerInsecure {
+		args = append(args, "--insecure")
+	}
 	return appsv1.Deployment{
 		TypeMeta:   metav1.TypeMeta{APIVersion: "apps/v1", Kind: "Deployment"},
 		ObjectMeta: metav1.ObjectMeta{Name: "argocd-server", Namespace: ns, Labels: labels},
@@ -25,7 +29,7 @@ func buildDeploymentServer(ns string) appsv1.Deployment {
 							Name:            "argocd-server",
 							Image:           argocdImage,
 							ImagePullPolicy: corev1.PullAlways,
-							Args:            []string{"/usr/local/bin/argocd-server", "--port=8080", "--metrics-port=8083"},
+							Args:            args,
 							Env: []corev1.EnvVar{
 								{Name: "ARGOCD_SERVER_NAME", Value: "argocd-server"},
 								cmRef("ARGOCD_SERVER_INSECURE", "argocd-cmd-params-cm", "server.insecure"),
