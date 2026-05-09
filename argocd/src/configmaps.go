@@ -38,7 +38,7 @@ func mustMarshalYAML(v any) string {
 func buildConfigMapArgocdCm(ns string) corev1.ConfigMap {
 	return corev1.ConfigMap{
 		TypeMeta:   metav1.TypeMeta{APIVersion: "v1", Kind: "ConfigMap"},
-		ObjectMeta: metav1.ObjectMeta{Name: "argocd-cm", Namespace: ns},
+		ObjectMeta: metav1.ObjectMeta{Name: "argocd-cm", Namespace: ns, Labels: argoConfigLabels("argocd-cm")},
 		Data: map[string]string{
 			"resource.exclusions": mustMarshalYAML([]filteredResource{
 				// Network resources created by the Kubernetes control plane
@@ -112,28 +112,28 @@ func buildConfigMapArgocdCm(ns string) corev1.ConfigMap {
 func buildConfigMapCmdParams(ns string) corev1.ConfigMap {
 	return corev1.ConfigMap{
 		TypeMeta:   metav1.TypeMeta{APIVersion: "v1", Kind: "ConfigMap"},
-		ObjectMeta: metav1.ObjectMeta{Name: "argocd-cmd-params-cm", Namespace: ns},
+		ObjectMeta: metav1.ObjectMeta{Name: "argocd-cmd-params-cm", Namespace: ns, Labels: argoConfigLabels("argocd-cmd-params-cm")},
 	}
 }
 
 func buildConfigMapGpgKeys(ns string) corev1.ConfigMap {
 	return corev1.ConfigMap{
 		TypeMeta:   metav1.TypeMeta{APIVersion: "v1", Kind: "ConfigMap"},
-		ObjectMeta: metav1.ObjectMeta{Name: "argocd-gpg-keys-cm", Namespace: ns},
+		ObjectMeta: metav1.ObjectMeta{Name: "argocd-gpg-keys-cm", Namespace: ns, Labels: argoConfigLabels("argocd-gpg-keys-cm")},
 	}
 }
 
 func buildConfigMapRbacCm(ns string) corev1.ConfigMap {
 	return corev1.ConfigMap{
 		TypeMeta:   metav1.TypeMeta{APIVersion: "v1", Kind: "ConfigMap"},
-		ObjectMeta: metav1.ObjectMeta{Name: "argocd-rbac-cm", Namespace: ns},
+		ObjectMeta: metav1.ObjectMeta{Name: "argocd-rbac-cm", Namespace: ns, Labels: argoConfigLabels("argocd-rbac-cm")},
 	}
 }
 
 func buildConfigMapSshKnownHosts(ns string) corev1.ConfigMap {
 	return corev1.ConfigMap{
 		TypeMeta:   metav1.TypeMeta{APIVersion: "v1", Kind: "ConfigMap"},
-		ObjectMeta: metav1.ObjectMeta{Name: "argocd-ssh-known-hosts-cm", Namespace: ns},
+		ObjectMeta: metav1.ObjectMeta{Name: "argocd-ssh-known-hosts-cm", Namespace: ns, Labels: argoConfigLabels("argocd-ssh-known-hosts-cm")},
 		Data: map[string]string{
 			"ssh_known_hosts": sshKnownHosts,
 		},
@@ -143,14 +143,14 @@ func buildConfigMapSshKnownHosts(ns string) corev1.ConfigMap {
 func buildConfigMapTlsCerts(ns string) corev1.ConfigMap {
 	return corev1.ConfigMap{
 		TypeMeta:   metav1.TypeMeta{APIVersion: "v1", Kind: "ConfigMap"},
-		ObjectMeta: metav1.ObjectMeta{Name: "argocd-tls-certs-cm", Namespace: ns},
+		ObjectMeta: metav1.ObjectMeta{Name: "argocd-tls-certs-cm", Namespace: ns, Labels: argoConfigLabels("argocd-tls-certs-cm")},
 	}
 }
 
 func buildSecretArgocd(ns string) corev1.Secret {
 	return corev1.Secret{
 		TypeMeta:   metav1.TypeMeta{APIVersion: "v1", Kind: "Secret"},
-		ObjectMeta: metav1.ObjectMeta{Name: "argocd-secret", Namespace: ns},
+		ObjectMeta: metav1.ObjectMeta{Name: "argocd-secret", Namespace: ns, Labels: argoConfigLabels("argocd-secret")},
 		Type:       corev1.SecretTypeOpaque,
 	}
 }

@@ -76,6 +76,13 @@ func argoLabels(component, name string) map[string]string {
 	}
 }
 
+func argoConfigLabels(name string) map[string]string {
+	return map[string]string{
+		"app.kubernetes.io/name":    name,
+		"app.kubernetes.io/part-of": "argocd",
+	}
+}
+
 func cmRef(envName, cm, key string) corev1.EnvVar {
 	return corev1.EnvVar{
 		Name: envName,
