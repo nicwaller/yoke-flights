@@ -8,3 +8,9 @@ server: true
 
 # Run argocd-server without TLS. Useful when accessed only within the cluster.
 serverInsecure: true
+
+# Service type for argocd-server. Use LoadBalancer to expose on the local network.
+serverServiceType: LoadBalancer
+
+# External port for argocd-server when using LoadBalancer.
+serverPort: 5000

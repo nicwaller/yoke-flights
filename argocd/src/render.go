@@ -63,7 +63,7 @@ func render(_, ns string, values Values) ([]json.RawMessage, error) {
 			buildClusterRoleServer(),
 			buildRoleBinding("argocd-server", ns),
 			buildClusterRoleBindingServer(ns),
-			buildServiceServer(ns),
+			buildServiceServer(ns, values),
 			buildDeploymentServer(ns, values),
 		)
 	}

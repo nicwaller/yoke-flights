@@ -1,0 +1,31 @@
+version: '3'
+
+env:
+  KUBECONFIG:
+    sh: echo "$HOME/.kube/config"
+
+tasks:
+  build:
+    desc: Compile the flight to a wasm binary
+    cmds:
+      - make dist/cloudflare-tunnel.wasm
+
+  diff:
+    desc: Preview changes against the running release
+    deps: [build]
+    cmds:
+      - yoke takeoff -diff-only --namespace cloudflare-tunnel cloudflare-tunnel dist/cloudflare-tunnel.wasm < values.yaml
+
+  deploy:
+    desc: Deploy to the cloudflare-tunnel namespace
+    deps: [build]
+    cmds:
+      - kubectl create namespace cloudflare-tunnel --dry-run=client -o yaml | kubectl apply -f -
+      - yoke takeoff --namespace cloudflare-tunnel cloudflare-tunnel dist/cloudflare-tunnel.wasm < values.yaml
+      - kubectl rollout status deployment/cloudflare-tunnel -n cloudflare-tunnel
+
+  clean:
+    desc: Remove all cloudflare-tunnel releases and namespaces from the cluster
+    cmds:
+      - yoke mayday --namespace cloudflare-tunnel cloudflare-tunnel || true
+      - kubectl delete namespace cloudflare-tunnel --ignore-not-found
