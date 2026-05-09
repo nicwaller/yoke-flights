@@ -1,0 +1,4 @@
+# ArgoCD Core flight — no required values.
+# The argocd-cm and argocd-cmd-params-cm ConfigMaps can be patched
+# post-install to tune ArgoCD behaviour without modifying the flight.
+{}

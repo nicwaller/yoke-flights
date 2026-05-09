@@ -1,0 +1,35 @@
+version: '3'
+
+env:
+  KUBECONFIG:
+    sh: echo "$HOME/.kube/config"
+
+tasks:
+  build:
+    desc: Compile the flight to a wasm binary
+    cmds:
+      - make dist/argocd.wasm
+
+  test:
+    desc: Run unit tests
+    cmds:
+      - go test ./src/...
+
+  diff:
+    desc: Preview changes against the running release
+    deps: [build]
+    cmds:
+      - yoke takeoff -diff-only --namespace argocd argocd dist/argocd.wasm
+
+  deploy:
+    desc: Deploy to the argocd namespace
+    deps: [build]
+    cmds:
+      - kubectl create namespace argocd --dry-run=client -o yaml | kubectl apply -f -
+      - yoke takeoff --namespace argocd argocd dist/argocd.wasm
+
+  clean:
+    desc: Remove the argocd release and namespace from the cluster
+    cmds:
+      - yoke mayday --namespace argocd argocd || true
+      - kubectl delete namespace argocd --ignore-not-found

@@ -11,3 +11,4 @@ tasks:
     cmds:
       - task -d forgejo test
       - task -d onetimesecret test
+      - task -d argocd test
