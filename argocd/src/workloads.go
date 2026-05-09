@@ -7,6 +7,106 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 )
 
+func buildDeploymentServer(ns string) appsv1.Deployment {
+	labels := argoLabels("server", "argocd-server")
+	podLabels := map[string]string{"app.kubernetes.io/name": "argocd-server"}
+	return appsv1.Deployment{
+		TypeMeta:   metav1.TypeMeta{APIVersion: "apps/v1", Kind: "Deployment"},
+		ObjectMeta: metav1.ObjectMeta{Name: "argocd-server", Namespace: ns, Labels: labels},
+		Spec: appsv1.DeploymentSpec{
+			Selector: &metav1.LabelSelector{MatchLabels: podLabels},
+			Template: corev1.PodTemplateSpec{
+				ObjectMeta: metav1.ObjectMeta{Labels: podLabels},
+				Spec: corev1.PodSpec{
+					ServiceAccountName: "argocd-server",
+					NodeSelector:       map[string]string{"kubernetes.io/os": "linux"},
+					Containers: []corev1.Container{
+						{
+							Name:            "argocd-server",
+							Image:           argocdImage,
+							ImagePullPolicy: corev1.PullAlways,
+							Args:            []string{"/usr/local/bin/argocd-server", "--port=8080", "--metrics-port=8083"},
+							Env: []corev1.EnvVar{
+								{Name: "ARGOCD_SERVER_NAME", Value: "argocd-server"},
+								cmRef("ARGOCD_SERVER_INSECURE", "argocd-cmd-params-cm", "server.insecure"),
+								cmRef("ARGOCD_SERVER_BASEHREF", "argocd-cmd-params-cm", "server.basehref"),
+								cmRef("ARGOCD_SERVER_ROOTPATH", "argocd-cmd-params-cm", "server.rootpath"),
+								cmRef("ARGOCD_SERVER_LOGFORMAT", "argocd-cmd-params-cm", "server.log.format"),
+								cmRef("ARGOCD_SERVER_LOG_LEVEL", "argocd-cmd-params-cm", "server.log.level"),
+								cmRef("ARGOCD_SERVER_REPO_SERVER", "argocd-cmd-params-cm", "repo.server"),
+								cmRef("ARGOCD_SERVER_DEX_SERVER", "argocd-cmd-params-cm", "server.dex.server"),
+								cmRef("ARGOCD_SERVER_DISABLE_AUTH", "argocd-cmd-params-cm", "server.disable.auth"),
+								cmRef("ARGOCD_SERVER_ENABLE_GZIP", "argocd-cmd-params-cm", "server.enable.gzip"),
+								cmRef("ARGOCD_SERVER_REPO_SERVER_PLAINTEXT", "argocd-cmd-params-cm", "server.repo.server.plaintext"),
+								cmRef("ARGOCD_SERVER_REPO_SERVER_STRICT_TLS", "argocd-cmd-params-cm", "server.repo.server.strict.tls"),
+								cmRef("REDIS_SERVER", "argocd-cmd-params-cm", "redis.server"),
+								cmRef("REDIS_COMPRESSION", "argocd-cmd-params-cm", "redis.compression"),
+								cmRef("REDISDB", "argocd-cmd-params-cm", "redis.db"),
+								cmRef("ARGOCD_APPLICATION_NAMESPACES", "argocd-cmd-params-cm", "application.namespaces"),
+								secretRef("REDIS_PASSWORD", "argocd-redis", "auth"),
+							},
+							Ports: []corev1.ContainerPort{
+								{Name: "server", ContainerPort: 8080, Protocol: corev1.ProtocolTCP},
+								{Name: "metrics", ContainerPort: 8083, Protocol: corev1.ProtocolTCP},
+							},
+							LivenessProbe: &corev1.Probe{
+								ProbeHandler:        corev1.ProbeHandler{HTTPGet: &corev1.HTTPGetAction{Path: "/healthz?full=true", Port: intstr.FromString("server")}},
+								InitialDelaySeconds: 10,
+								PeriodSeconds:       10,
+								FailureThreshold:    3,
+								TimeoutSeconds:      1,
+							},
+							ReadinessProbe: &corev1.Probe{
+								ProbeHandler: corev1.ProbeHandler{HTTPGet: &corev1.HTTPGetAction{Path: "/healthz", Port: intstr.FromString("server")}},
+								PeriodSeconds: 10,
+								TimeoutSeconds: 1,
+							},
+							SecurityContext: restrictedSecCtx(),
+							VolumeMounts: []corev1.VolumeMount{
+								{Name: "ssh-known-hosts", MountPath: "/app/config/ssh"},
+								{Name: "tls-certs", MountPath: "/app/config/tls"},
+								{Name: "argocd-repo-server-tls", MountPath: "/app/config/server/tls"},
+								{Name: "argocd-dex-server-tls", MountPath: "/app/config/dex/tls"},
+								{Name: "tmp", MountPath: "/tmp"},
+								{Name: "plugins-home", MountPath: "/home/argocd"},
+								{Name: "argocd-cmd-params-cm", MountPath: "/home/argocd/params"},
+							},
+						},
+					},
+					Volumes: []corev1.Volume{
+						{Name: "ssh-known-hosts", VolumeSource: corev1.VolumeSource{ConfigMap: &corev1.ConfigMapVolumeSource{LocalObjectReference: corev1.LocalObjectReference{Name: "argocd-ssh-known-hosts-cm"}}}},
+						{Name: "tls-certs", VolumeSource: corev1.VolumeSource{ConfigMap: &corev1.ConfigMapVolumeSource{LocalObjectReference: corev1.LocalObjectReference{Name: "argocd-tls-certs-cm"}}}},
+						{Name: "tmp", VolumeSource: corev1.VolumeSource{EmptyDir: &corev1.EmptyDirVolumeSource{}}},
+						{Name: "plugins-home", VolumeSource: corev1.VolumeSource{EmptyDir: &corev1.EmptyDirVolumeSource{}}},
+						{Name: "argocd-repo-server-tls", VolumeSource: corev1.VolumeSource{Secret: &corev1.SecretVolumeSource{
+							SecretName: "argocd-repo-server-tls",
+							Optional:   ptr(true),
+							Items: []corev1.KeyToPath{
+								{Key: "tls.crt", Path: "tls.crt"},
+								{Key: "tls.key", Path: "tls.key"},
+								{Key: "ca.crt", Path: "ca.crt"},
+							},
+						}}},
+						{Name: "argocd-dex-server-tls", VolumeSource: corev1.VolumeSource{Secret: &corev1.SecretVolumeSource{
+							SecretName: "argocd-dex-server-tls",
+							Optional:   ptr(true),
+							Items: []corev1.KeyToPath{
+								{Key: "tls.crt", Path: "tls.crt"},
+								{Key: "ca.crt", Path: "ca.crt"},
+							},
+						}}},
+						{Name: "argocd-cmd-params-cm", VolumeSource: corev1.VolumeSource{ConfigMap: &corev1.ConfigMapVolumeSource{
+							LocalObjectReference: corev1.LocalObjectReference{Name: "argocd-cmd-params-cm"},
+							Optional:             ptr(true),
+							Items:                []corev1.KeyToPath{{Key: "server.profile.enabled", Path: "profiler.enabled"}},
+						}}},
+					},
+				},
+			},
+		},
+	}
+}
+
 func buildDeploymentApplicationsetController(ns string) appsv1.Deployment {
 	labels := argoLabels("applicationset-controller", "argocd-applicationset-controller")
 	podLabels := map[string]string{"app.kubernetes.io/name": "argocd-applicationset-controller"}

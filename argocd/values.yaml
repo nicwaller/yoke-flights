@@ -1,4 +1,7 @@
 # ArgoCD Core flight — no required values.
 # The argocd-cm and argocd-cmd-params-cm ConfigMaps can be patched
 # post-install to tune ArgoCD behaviour without modifying the flight.
-{}
+
+# Enable argocd-server for in-cluster UI, REST/gRPC API, and webhook support.
+# When false, use `argocd admin dashboard --core` to access the UI locally.
+server: true

@@ -12,7 +12,7 @@ const (
 	redisImage  = "public.ecr.aws/docker/library/redis:8.2.3-alpine"
 )
 
-func render(_, ns string, _ Values) ([]json.RawMessage, error) {
+func render(_, ns string, values Values) ([]json.RawMessage, error) {
 	crds, err := parseCRDs()
 	if err != nil {
 		return nil, err
@@ -54,6 +54,18 @@ func render(_, ns string, _ Values) ([]json.RawMessage, error) {
 		buildDeploymentRedis(ns),
 		buildDeploymentRepoServer(ns),
 		buildStatefulSetApplicationController(ns),
+	}
+
+	if values.Server {
+		objects = append(objects,
+			buildSA("argocd-server", ns),
+			buildRoleServer(ns),
+			buildClusterRoleServer(),
+			buildRoleBinding("argocd-server", ns),
+			buildClusterRoleBindingServer(ns),
+			buildServiceServer(ns),
+			buildDeploymentServer(ns),
+		)
 	}
 
 	result := make([]json.RawMessage, len(crds), len(crds)+len(objects))

@@ -64,6 +64,42 @@ func buildClusterRoleApplicationController() rbacv1.ClusterRole {
 	}
 }
 
+func buildRoleServer(ns string) rbacv1.Role {
+	return rbacv1.Role{
+		TypeMeta:   metav1.TypeMeta{APIVersion: "rbac.authorization.k8s.io/v1", Kind: "Role"},
+		ObjectMeta: metav1.ObjectMeta{Name: "argocd-server", Namespace: ns},
+		Rules: []rbacv1.PolicyRule{
+			{APIGroups: []string{""}, Resources: []string{"secrets", "configmaps"}, Verbs: []string{"create", "get", "list", "watch", "update", "patch", "delete"}},
+			{APIGroups: []string{"argoproj.io"}, Resources: []string{"applications", "applicationsets", "appprojects"}, Verbs: []string{"create", "get", "list", "watch", "update", "delete", "patch"}},
+			{APIGroups: []string{""}, Resources: []string{"events"}, Verbs: []string{"create", "list"}},
+		},
+	}
+}
+
+func buildClusterRoleServer() rbacv1.ClusterRole {
+	return rbacv1.ClusterRole{
+		TypeMeta:   metav1.TypeMeta{APIVersion: "rbac.authorization.k8s.io/v1", Kind: "ClusterRole"},
+		ObjectMeta: metav1.ObjectMeta{Name: "argocd-server"},
+		Rules: []rbacv1.PolicyRule{
+			{APIGroups: []string{"*"}, Resources: []string{"*"}, Verbs: []string{"delete", "get", "patch"}},
+			{APIGroups: []string{""}, Resources: []string{"events"}, Verbs: []string{"list", "create"}},
+			{APIGroups: []string{""}, Resources: []string{"pods", "pods/log"}, Verbs: []string{"get"}},
+			{APIGroups: []string{"argoproj.io"}, Resources: []string{"applications", "applicationsets"}, Verbs: []string{"get", "list", "update", "watch"}},
+			{APIGroups: []string{"batch"}, Resources: []string{"jobs"}, Verbs: []string{"create"}},
+			{APIGroups: []string{"argoproj.io"}, Resources: []string{"workflows"}, Verbs: []string{"create"}},
+		},
+	}
+}
+
+func buildClusterRoleBindingServer(ns string) rbacv1.ClusterRoleBinding {
+	return rbacv1.ClusterRoleBinding{
+		TypeMeta:   metav1.TypeMeta{APIVersion: "rbac.authorization.k8s.io/v1", Kind: "ClusterRoleBinding"},
+		ObjectMeta: metav1.ObjectMeta{Name: "argocd-server"},
+		RoleRef:    rbacv1.RoleRef{APIGroup: "rbac.authorization.k8s.io", Kind: "ClusterRole", Name: "argocd-server"},
+		Subjects:   []rbacv1.Subject{{Kind: "ServiceAccount", Name: "argocd-server", Namespace: ns}},
+	}
+}
+
 func buildRoleBinding(name, ns string) rbacv1.RoleBinding {
 	return rbacv1.RoleBinding{
 		TypeMeta:   metav1.TypeMeta{APIVersion: "rbac.authorization.k8s.io/v1", Kind: "RoleBinding"},
