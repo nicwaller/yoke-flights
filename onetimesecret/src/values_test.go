@@ -12,14 +12,6 @@ func TestValidate_DomainWithPort(t *testing.T) {
 	}
 }
 
-func TestValidate_InvalidServiceType(t *testing.T) {
-	v := defaults
-	v.ServiceType = "Invalid"
-	if err := v.validate(); err == nil {
-		t.Error("expected error for invalid serviceType")
-	}
-}
-
 func TestValidate_InvalidSmtpPort(t *testing.T) {
 	v := defaults
 	v.SmtpPort = 0

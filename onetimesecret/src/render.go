@@ -39,7 +39,7 @@ func render(name, ns string, values Values) ([]json.RawMessage, error) {
 		buildRedisDeployment(name, ns, redisLabels),
 		buildRedisService(name, ns, redisLabels),
 		buildOTSDeployment(name, ns, values, appLabels, redisURL),
-		buildOTSService(name, ns, appLabels, values.ServiceType, int32(values.Port)),
+		buildOTSService(name, ns, appLabels, int32(values.Port)),
 	}
 
 	result := make([]json.RawMessage, len(objects))
@@ -210,12 +210,12 @@ func buildOTSDeployment(name, ns string, values Values, labels map[string]string
 	}
 }
 
-func buildOTSService(name, ns string, selector map[string]string, svcType string, externalPort int32) corev1.Service {
+func buildOTSService(name, ns string, selector map[string]string, externalPort int32) corev1.Service {
 	return corev1.Service{
 		TypeMeta:   metav1.TypeMeta{APIVersion: "v1", Kind: "Service"},
 		ObjectMeta: metav1.ObjectMeta{Name: name, Namespace: ns},
 		Spec: corev1.ServiceSpec{
-			Type:     corev1.ServiceType(svcType),
+			Type:     corev1.ServiceTypeClusterIP,
 			Selector: selector,
 			Ports: []corev1.ServicePort{
 				{
