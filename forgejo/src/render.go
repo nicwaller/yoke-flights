@@ -16,9 +16,10 @@ const (
 	forgejoImage    = "codeberg.org/forgejo/forgejo:15.0.1-rootless"
 	runnerImage     = "data.forgejo.org/forgejo/runner:12"
 	forgejoUID      = 1000
-	httpPort        = 3000
+	httpListenPort  = 8080
+	httpExternalPort = 80
 	sshListenPort   = 2222
-	sshExternalPort = 2222
+	sshExternalPort = 22
 )
 
 const initDirsScript = `mkdir -p /data/git/.ssh /data/gitea/conf /tmp/gitea &&
@@ -90,7 +91,7 @@ func render(name, ns string, values Values) ([]json.RawMessage, error) {
 		buildAdminSecret(name, ns, values.AdminUsername, adminPassword),
 		buildPVC(name, ns, values.StorageClass, storageQty),
 		buildDeployment(name, ns, values.Domain, labels),
-		buildService(name+"-http", ns, labels, "http", httpPort),
+		buildService(name+"-http", ns, labels, "http", httpExternalPort),
 		buildService(name+"-ssh", ns, labels, "ssh", sshExternalPort),
 	}
 
@@ -166,7 +167,7 @@ func buildDeployment(name, ns, domain string, labels map[string]string) appsv1.D
 								corev1.EnvVar{Name: "SSH_PORT", Value: strconv.Itoa(sshExternalPort)},
 							),
 							Ports: []corev1.ContainerPort{
-								{Name: "http", ContainerPort: httpPort},
+								{Name: "http", ContainerPort: httpListenPort},
 								{Name: "ssh", ContainerPort: sshListenPort},
 							},
 							ReadinessProbe: &corev1.Probe{
@@ -263,7 +264,7 @@ func buildInitContainers(name, ns, domain string) []corev1.Container {
 
 func buildRunnerDeployment(name, ns string, count int) appsv1.Deployment {
 	labels := map[string]string{"app": name + "-runner"}
-	forgejoURL := fmt.Sprintf("http://%s-http.%s.svc.cluster.local:%d", name, ns, httpPort)
+	forgejoURL := fmt.Sprintf("http://%s-http.%s.svc.cluster.local:%d", name, ns, httpExternalPort)
 	script := "FORGEJO_URL=" + forgejoURL + "\n" + runnerEntrypointScript
 	return appsv1.Deployment{
 		TypeMeta:   metav1.TypeMeta{APIVersion: "apps/v1", Kind: "Deployment"},

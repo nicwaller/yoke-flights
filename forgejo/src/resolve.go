@@ -100,7 +100,7 @@ func generateAppIni(domain string) (string, error) {
 		InternalToken: internalToken,
 		SecretKey:     secretKey,
 		JWTSecret:     jwtSecret,
-		HTTPPort:      httpPort,
+		HTTPPort:      httpListenPort,
 		SSHPort:       sshExternalPort,
 	}); err != nil {
 		return "", fmt.Errorf("failed to render app.ini: %w", err)
