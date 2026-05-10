@@ -12,6 +12,7 @@ type Values struct {
 	StorageSize   string `yaml:"storageSize"`
 	AdminUsername string `yaml:"adminUsername"`
 	AdminPassword string `yaml:"adminPassword"`
+	RunnerCount   int    `yaml:"runnerCount"`
 }
 
 var defaults = Values{
@@ -19,6 +20,7 @@ var defaults = Values{
 	StorageClass:  "local-path",
 	StorageSize:   "10Gi",
 	AdminUsername: "gitadmin",
+	RunnerCount:   1,
 }
 
 // Reserved by Forgejo — sourced from models/user/user.go reservedUsernames.
@@ -38,6 +40,9 @@ func (v Values) validate() error {
 	}
 	if slices.Contains(reservedUsernames, v.AdminUsername) {
 		return fmt.Errorf("adminUsername %q is reserved by Forgejo", v.AdminUsername)
+	}
+	if v.RunnerCount < 0 {
+		return fmt.Errorf("runnerCount must not be negative")
 	}
 	return nil
 }

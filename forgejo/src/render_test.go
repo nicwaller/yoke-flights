@@ -10,7 +10,9 @@ import (
 )
 
 func TestResourceTypes(t *testing.T) {
-	resources, err := render("forgejo", "forgejo", defaults)
+	v := defaults
+	v.RunnerCount = 0
+	resources, err := render("forgejo", "forgejo", v)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -25,6 +27,30 @@ func TestResourceTypes(t *testing.T) {
 	}
 	if n := len(findAll[corev1.Secret](resources)); n != 2 {
 		t.Errorf("want 2 Secrets, got %d", n)
+	}
+}
+
+func TestRunnerResources(t *testing.T) {
+	for _, tc := range []struct {
+		count       int
+		wantDeploys int
+	}{
+		{0, 1},
+		{1, 2},
+		{3, 2},
+	} {
+		v := defaults
+		v.RunnerCount = tc.count
+		resources, err := render("forgejo", "forgejo", v)
+		if err != nil {
+			t.Fatalf("runnerCount=%d: render failed: %v", tc.count, err)
+		}
+		if n := len(findAll[appsv1.Deployment](resources)); n != tc.wantDeploys {
+			t.Errorf("runnerCount=%d: want %d Deployments, got %d", tc.count, tc.wantDeploys, n)
+		}
+		if n := len(findAll[corev1.Secret](resources)); n != 2 {
+			t.Errorf("runnerCount=%d: want 2 Secrets, got %d", tc.count, n)
+		}
 	}
 }
 

@@ -13,6 +13,7 @@ import (
 func TestPropertyRenderSelectorsMatch(t *testing.T) {
 	rapid.Check(t, func(t *rapid.T) {
 		v := defaults
+		v.RunnerCount = 0
 		v.Domain = rapid.StringMatching(`[a-z][a-z0-9.-]{0,30}[a-z0-9]`).Draw(t, "domain")
 		v.AdminUsername = rapid.StringMatching(`[a-z][a-z0-9_-]{0,20}`).Draw(t, "adminUsername")
 

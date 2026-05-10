@@ -24,14 +24,14 @@ tasks:
     desc: Preview changes against the running release
     deps: [build]
     cmds:
-      - yoke takeoff -diff-only --namespace forgejo forgejo dist/forgejo.wasm < values.yaml
+      - yoke takeoff -diff-only --cluster-access --namespace forgejo forgejo dist/forgejo.wasm < values.yaml
 
   deploy:
     desc: Deploy to the forgejo namespace
     deps: [build]
     cmds:
       - kubectl create namespace forgejo --dry-run=client -o yaml | kubectl apply -f -
-      - yoke takeoff --namespace forgejo forgejo dist/forgejo.wasm < values.yaml
+      - yoke takeoff --cluster-access --namespace forgejo forgejo dist/forgejo.wasm < values.yaml
 
   password:
     desc: Print the admin password from the cluster
@@ -55,5 +55,5 @@ tasks:
       - kubectl create namespace {{.NS}} --dry-run=client -o yaml | kubectl apply -f -
       - defer: kubectl delete namespace {{.NS}} --ignore-not-found
       - defer: yoke mayday --namespace {{.NS}} {{.NS}}
-      - yoke takeoff --namespace {{.NS}} {{.NS}} dist/forgejo.wasm < values.yaml
+      - yoke takeoff --cluster-access --namespace {{.NS}} {{.NS}} dist/forgejo.wasm < values.yaml
       - kubectl wait --for=condition=available --timeout=180s deployment/{{.NS}} -n {{.NS}}

@@ -14,6 +14,7 @@ import (
 
 const (
 	forgejoImage    = "codeberg.org/forgejo/forgejo:15.0.1-rootless"
+	runnerImage     = "data.forgejo.org/forgejo/runner:12"
 	forgejoUID      = 1000
 	httpPort        = 3000
 	sshListenPort   = 2222
@@ -36,6 +37,31 @@ if ! gitea admin user create --admin \
     --password "$GITEA_ADMIN_PASSWORD" \
     --must-change-password=false
 fi`
+
+// runnerEntrypointScript registers this pod as an ephemeral runner via the Forgejo HTTP API
+// then immediately runs one-job using the returned credentials.
+// Requires FORGEJO_URL, ADMIN_USERNAME, ADMIN_PASSWORD, and POD_NAME env vars.
+const runnerEntrypointScript = `set -e
+mkdir -p /tmp/runner-work
+cat > /tmp/runner-config.yaml << 'YAML'
+runner:
+  labels:
+    - "self-hosted:host"
+host:
+  workdir_parent: "/tmp/runner-work"
+YAML
+wget -qO /tmp/runner-response \
+  --header "Content-Type: application/json" \
+  --header "Authorization: Basic $(printf '%s:%s' "$ADMIN_USERNAME" "$ADMIN_PASSWORD" | base64 | tr -d '\n')" \
+  --post-data "{\"name\":\"$POD_NAME\",\"ephemeral\":true}" \
+  "$FORGEJO_URL/api/v1/admin/actions/runners"
+UUID=$(sed 's/.*"uuid":"\([^"]*\)".*/\1/' /tmp/runner-response)
+sed 's/.*"token":"\([^"]*\)".*/\1/' /tmp/runner-response > /tmp/runner-token
+exec forgejo-runner one-job --wait \
+  --config /tmp/runner-config.yaml \
+  --url "$FORGEJO_URL/" \
+  --uuid "$UUID" \
+  --token-url "file:///tmp/runner-token"`
 
 func render(name, ns string, values Values) ([]json.RawMessage, error) {
 	if err := values.validate(); err != nil {
@@ -66,6 +92,10 @@ func render(name, ns string, values Values) ([]json.RawMessage, error) {
 		buildDeployment(name, ns, values.Domain, labels),
 		buildService(name+"-http", ns, labels, "http", httpPort),
 		buildService(name+"-ssh", ns, labels, "ssh", sshExternalPort),
+	}
+
+	if values.RunnerCount > 0 {
+		objects = append(objects, buildRunnerDeployment(name, ns, values.RunnerCount))
 	}
 
 	result := make([]json.RawMessage, len(objects))
@@ -117,53 +147,16 @@ func buildDeployment(name, ns, domain string, labels map[string]string) appsv1.D
 		TypeMeta:   metav1.TypeMeta{APIVersion: "apps/v1", Kind: "Deployment"},
 		ObjectMeta: metav1.ObjectMeta{Name: name, Namespace: ns, Labels: labels},
 		Spec: appsv1.DeploymentSpec{
-			Replicas: ptr(int32(1)),
-			Strategy: appsv1.DeploymentStrategy{Type: appsv1.RecreateDeploymentStrategyType},
-			Selector: &metav1.LabelSelector{MatchLabels: labels},
+			Replicas:             ptr(int32(1)),
+			RevisionHistoryLimit: ptr(int32(0)),
+			Strategy:             appsv1.DeploymentStrategy{Type: appsv1.RecreateDeploymentStrategyType},
+			Selector:             &metav1.LabelSelector{MatchLabels: labels},
 			Template: corev1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{Labels: labels},
 				Spec: corev1.PodSpec{
 					SecurityContext:               &corev1.PodSecurityContext{FSGroup: ptr(int64(forgejoUID))},
 					TerminationGracePeriodSeconds: ptr(int64(60)),
-					InitContainers: []corev1.Container{
-						{
-							Name:    "init-directories",
-							Image:   forgejoImage,
-							Command: []string{"/bin/sh", "-c", initDirsScript},
-							Env:     envBase(),
-							VolumeMounts: []corev1.VolumeMount{
-								{Name: "data", MountPath: "/data"},
-								{Name: "config", MountPath: "/config"},
-								{Name: "temp", MountPath: "/tmp"},
-							},
-						},
-						{
-							Name:    "configure-gitea",
-							Image:   forgejoImage,
-							Command: []string{"/bin/sh", "-c", fmt.Sprintf(configureGiteaScriptFmt, domain)},
-							Env: append(envBase(),
-								corev1.EnvVar{
-									Name: "GITEA_ADMIN_USERNAME",
-									ValueFrom: &corev1.EnvVarSource{SecretKeyRef: &corev1.SecretKeySelector{
-										LocalObjectReference: corev1.LocalObjectReference{Name: name + "-admin"},
-										Key:                  "username",
-									}},
-								},
-								corev1.EnvVar{
-									Name: "GITEA_ADMIN_PASSWORD",
-									ValueFrom: &corev1.EnvVarSource{SecretKeyRef: &corev1.SecretKeySelector{
-										LocalObjectReference: corev1.LocalObjectReference{Name: name + "-admin"},
-										Key:                  "password",
-									}},
-								},
-							),
-							SecurityContext: &corev1.SecurityContext{RunAsUser: ptr(int64(forgejoUID))},
-							VolumeMounts: []corev1.VolumeMount{
-								{Name: "data", MountPath: "/data"},
-								{Name: "temp", MountPath: "/tmp"},
-							},
-						},
-					},
+					InitContainers: buildInitContainers(name, ns, domain),
 					Containers: []corev1.Container{
 						{
 							Name:  "forgejo",
@@ -218,6 +211,97 @@ func buildDeployment(name, ns, domain string, labels map[string]string) appsv1.D
 						{
 							Name:         "temp",
 							VolumeSource: corev1.VolumeSource{EmptyDir: &corev1.EmptyDirVolumeSource{}},
+						},
+					},
+				},
+			},
+		},
+	}
+}
+
+func buildInitContainers(name, ns, domain string) []corev1.Container {
+	return []corev1.Container{
+		{
+			Name:    "init-directories",
+			Image:   forgejoImage,
+			Command: []string{"/bin/sh", "-c", initDirsScript},
+			Env:     envBase(),
+			VolumeMounts: []corev1.VolumeMount{
+				{Name: "data", MountPath: "/data"},
+				{Name: "config", MountPath: "/config"},
+				{Name: "temp", MountPath: "/tmp"},
+			},
+		},
+		{
+			Name:    "configure-gitea",
+			Image:   forgejoImage,
+			Command: []string{"/bin/sh", "-c", fmt.Sprintf(configureGiteaScriptFmt, domain)},
+			Env: append(envBase(),
+				corev1.EnvVar{
+					Name: "GITEA_ADMIN_USERNAME",
+					ValueFrom: &corev1.EnvVarSource{SecretKeyRef: &corev1.SecretKeySelector{
+						LocalObjectReference: corev1.LocalObjectReference{Name: name + "-admin"},
+						Key:                  "username",
+					}},
+				},
+				corev1.EnvVar{
+					Name: "GITEA_ADMIN_PASSWORD",
+					ValueFrom: &corev1.EnvVarSource{SecretKeyRef: &corev1.SecretKeySelector{
+						LocalObjectReference: corev1.LocalObjectReference{Name: name + "-admin"},
+						Key:                  "password",
+					}},
+				},
+			),
+			SecurityContext: &corev1.SecurityContext{RunAsUser: ptr(int64(forgejoUID))},
+			VolumeMounts: []corev1.VolumeMount{
+				{Name: "data", MountPath: "/data"},
+				{Name: "temp", MountPath: "/tmp"},
+			},
+		},
+	}
+}
+
+func buildRunnerDeployment(name, ns string, count int) appsv1.Deployment {
+	labels := map[string]string{"app": name + "-runner"}
+	forgejoURL := fmt.Sprintf("http://%s-http.%s.svc.cluster.local:%d", name, ns, httpPort)
+	script := "FORGEJO_URL=" + forgejoURL + "\n" + runnerEntrypointScript
+	return appsv1.Deployment{
+		TypeMeta:   metav1.TypeMeta{APIVersion: "apps/v1", Kind: "Deployment"},
+		ObjectMeta: metav1.ObjectMeta{Name: name + "-runner", Namespace: ns, Labels: labels},
+		Spec: appsv1.DeploymentSpec{
+			Replicas:             ptr(int32(count)),
+			RevisionHistoryLimit: ptr(int32(0)),
+			Selector:             &metav1.LabelSelector{MatchLabels: labels},
+			Template: corev1.PodTemplateSpec{
+				ObjectMeta: metav1.ObjectMeta{Labels: labels},
+				Spec: corev1.PodSpec{
+					Containers: []corev1.Container{
+						{
+							Name:    "runner",
+							Image:   runnerImage,
+							Command: []string{"/bin/sh", "-c", script},
+							Env: []corev1.EnvVar{
+								{
+									Name: "POD_NAME",
+									ValueFrom: &corev1.EnvVarSource{
+										FieldRef: &corev1.ObjectFieldSelector{FieldPath: "metadata.name"},
+									},
+								},
+								{
+									Name: "ADMIN_USERNAME",
+									ValueFrom: &corev1.EnvVarSource{SecretKeyRef: &corev1.SecretKeySelector{
+										LocalObjectReference: corev1.LocalObjectReference{Name: name + "-admin"},
+										Key:                  "username",
+									}},
+								},
+								{
+									Name: "ADMIN_PASSWORD",
+									ValueFrom: &corev1.EnvVarSource{SecretKeyRef: &corev1.SecretKeySelector{
+										LocalObjectReference: corev1.LocalObjectReference{Name: name + "-admin"},
+										Key:                  "password",
+									}},
+								},
+							},
 						},
 					},
 				},

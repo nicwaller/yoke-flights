@@ -41,6 +41,8 @@ func resolveAdminPassword(name, ns, provided string) (string, error) {
 	}
 	existing, err := lookupSecret(name+"-admin", ns)
 	if err != nil {
+		// errNoClusterAccess: fail loudly rather than generate a new password
+		// that would mismatch what Forgejo's DB already has.
 		return "", fmt.Errorf("failed to lookup admin secret: %w", err)
 	}
 	if existing != nil {
@@ -49,6 +51,9 @@ func resolveAdminPassword(name, ns, provided string) (string, error) {
 	return randomSecret(16)
 }
 
+// errNoClusterAccess is returned when cluster access is unavailable (offline/test contexts).
+var errNoClusterAccess = errors.New("cluster access not granted")
+
 func lookupSecret(name, ns string) (*corev1.Secret, error) {
 	s, err := k8s.Lookup[corev1.Secret](k8s.ResourceIdentifier{
 		ApiVersion: "v1",
@@ -56,7 +61,13 @@ func lookupSecret(name, ns string) (*corev1.Secret, error) {
 		Name:       name,
 		Namespace:  ns,
 	})
-	if err != nil && !k8s.IsErrNotFound(err) && !errors.Is(err, k8s.ErrorClusterAccessNotGranted) {
+	if err != nil {
+		if k8s.IsErrNotFound(err) {
+			return nil, nil
+		}
+		if errors.Is(err, k8s.ErrorClusterAccessNotGranted) {
+			return nil, errNoClusterAccess
+		}
 		return nil, err
 	}
 	return s, nil
