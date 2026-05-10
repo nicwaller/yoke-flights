@@ -4,4 +4,4 @@ storageSize: 10Gi
 adminUsername: gitadmin
 # adminPassword: generated and stable if omitted
 # runnerCount: 1          # number of ephemeral action runners; set to 0 to disable
-runnerCount: 1
+runnerCount: 2
