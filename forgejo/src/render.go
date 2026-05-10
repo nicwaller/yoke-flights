@@ -364,7 +364,7 @@ kubectl get pods -n %s -l app=%s-runner --field-selector=status.phase=Succeeded 
 while read -r pod finished; do
   [ -z "$finished" ] && continue
   finished_epoch=$(date -d "$finished" +%%s 2>/dev/null) || continue
-  [ "$finished_epoch" -lt "$CUTOFF" ] && kubectl delete pod -n %s "$pod"
+  if [ "$finished_epoch" -lt "$CUTOFF" ]; then kubectl delete pod -n %s "$pod"; fi
 done`, ns, name, ns)
 
 	return batchv1.CronJob{
