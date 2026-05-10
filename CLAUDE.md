@@ -17,6 +17,8 @@ Flights are analogous to Helm charts, but written in typed Go instead of Go temp
 
 ## Deploying to k3s
 
+**Always use `task` commands to build and test flights — never `go build` or `go test` directly.**
+
 Each flight directory has a `Taskfile.yml` with standard tasks. Run from the flight directory (e.g. `cd argocd`):
 
 ```sh
