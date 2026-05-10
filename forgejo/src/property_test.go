@@ -11,13 +11,10 @@ import (
 )
 
 func TestPropertyRenderSelectorsMatch(t *testing.T) {
-	serviceTypes := []string{"ClusterIP", "NodePort", "LoadBalancer", "ExternalName"}
 	rapid.Check(t, func(t *rapid.T) {
 		v := defaults
 		v.Domain = rapid.StringMatching(`[a-z][a-z0-9.-]{0,30}[a-z0-9]`).Draw(t, "domain")
 		v.AdminUsername = rapid.StringMatching(`[a-z][a-z0-9_-]{0,20}`).Draw(t, "adminUsername")
-		v.HTTPServiceType = rapid.SampledFrom(serviceTypes).Draw(t, "httpServiceType")
-		v.SSHServiceType = rapid.SampledFrom(serviceTypes).Draw(t, "sshServiceType")
 
 		resources, err := render("forgejo", "forgejo", v)
 		if err != nil {
@@ -57,7 +54,7 @@ func TestPropertyAppIniReflectsDomain(t *testing.T) {
 		for _, want := range []string{
 			"DOMAIN = " + domain,
 			"SSH_DOMAIN = " + domain,
-			"ROOT_URL = http://" + domain + ":3000/",
+			"ROOT_URL = https://" + domain + "/",
 		} {
 			if !strings.Contains(ini, want) {
 				t.Errorf("app.ini missing %q", want)

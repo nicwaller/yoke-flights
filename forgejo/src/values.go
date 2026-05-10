@@ -4,27 +4,21 @@ import (
 	"fmt"
 	"slices"
 	"strings"
-
-	corev1 "k8s.io/api/core/v1"
 )
 
 type Values struct {
-	Domain          string `yaml:"domain"`
-	StorageClass    string `yaml:"storageClass"`
-	StorageSize     string `yaml:"storageSize"`
-	AdminUsername   string `yaml:"adminUsername"`
-	AdminPassword   string `yaml:"adminPassword"`
-	HTTPServiceType string `yaml:"httpServiceType"`
-	SSHServiceType  string `yaml:"sshServiceType"`
+	Domain        string `yaml:"domain"`
+	StorageClass  string `yaml:"storageClass"`
+	StorageSize   string `yaml:"storageSize"`
+	AdminUsername string `yaml:"adminUsername"`
+	AdminPassword string `yaml:"adminPassword"`
 }
 
 var defaults = Values{
-	Domain:          "forgejo.local",
-	StorageClass:    "local-path",
-	StorageSize:     "10Gi",
-	AdminUsername:   "gitadmin",
-	HTTPServiceType: "LoadBalancer",
-	SSHServiceType:  "LoadBalancer",
+	Domain:        "forgejo.local",
+	StorageClass:  "local-path",
+	StorageSize:   "10Gi",
+	AdminUsername: "gitadmin",
 }
 
 // Reserved by Forgejo — sourced from models/user/user.go reservedUsernames.
@@ -38,25 +32,12 @@ var reservedUsernames = []string{
 	"notifications", "report_abuse",
 }
 
-var validServiceTypes = map[corev1.ServiceType]bool{
-	corev1.ServiceTypeClusterIP:    true,
-	corev1.ServiceTypeNodePort:     true,
-	corev1.ServiceTypeLoadBalancer: true,
-	corev1.ServiceTypeExternalName: true,
-}
-
 func (v Values) validate() error {
 	if strings.Contains(v.Domain, ":") {
 		return fmt.Errorf("domain %q must not include a port", v.Domain)
 	}
 	if slices.Contains(reservedUsernames, v.AdminUsername) {
 		return fmt.Errorf("adminUsername %q is reserved by Forgejo", v.AdminUsername)
-	}
-	if !validServiceTypes[corev1.ServiceType(v.HTTPServiceType)] {
-		return fmt.Errorf("invalid httpServiceType %q", v.HTTPServiceType)
-	}
-	if !validServiceTypes[corev1.ServiceType(v.SSHServiceType)] {
-		return fmt.Errorf("invalid sshServiceType %q", v.SSHServiceType)
 	}
 	return nil
 }

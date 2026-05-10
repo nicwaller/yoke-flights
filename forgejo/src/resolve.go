@@ -5,6 +5,7 @@ import (
 	"embed"
 	"errors"
 	"fmt"
+	"strings"
 	"text/template"
 
 	corev1 "k8s.io/api/core/v1"
@@ -25,7 +26,7 @@ func resolveAppIni(name, ns, domain string) (string, error) {
 		return "", fmt.Errorf("failed to lookup config secret: %w", err)
 	}
 	if existing != nil {
-		if ini := string(existing.Data["app.ini"]); ini != "" {
+		if ini := string(existing.Data["app.ini"]); ini != "" && strings.Contains(ini, "DOMAIN = "+domain) {
 			return ini, nil
 		}
 	}

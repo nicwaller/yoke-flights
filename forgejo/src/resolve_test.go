@@ -14,7 +14,7 @@ func TestGenerateAppIni(t *testing.T) {
 	for _, want := range []string{
 		"DOMAIN = " + domain,
 		"SSH_DOMAIN = " + domain,
-		"ROOT_URL = http://" + domain + ":3000/",
+		"ROOT_URL = https://" + domain + "/",
 		"LFS_JWT_SECRET =",
 		"INTERNAL_TOKEN =",
 		"SECRET_KEY =",

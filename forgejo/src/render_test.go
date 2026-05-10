@@ -39,45 +39,11 @@ func TestImage(t *testing.T) {
 	}
 }
 
-func TestHTTPServiceType(t *testing.T) {
-	values := defaults
-	values.HTTPServiceType = "ClusterIP"
-	resources, err := render("forgejo", "forgejo", values)
-	if err != nil {
-		t.Fatal(err)
-	}
-	svc := findService(t, resources, "forgejo-http")
-	if svc.Spec.Type != corev1.ServiceTypeClusterIP {
-		t.Fatalf("HTTP service type: got %q, want ClusterIP", svc.Spec.Type)
-	}
-}
-
-func TestSSHServiceType(t *testing.T) {
-	values := defaults
-	values.SSHServiceType = "ClusterIP"
-	resources, err := render("forgejo", "forgejo", values)
-	if err != nil {
-		t.Fatal(err)
-	}
-	svc := findService(t, resources, "forgejo-ssh")
-	if svc.Spec.Type != corev1.ServiceTypeClusterIP {
-		t.Fatalf("SSH service type: got %q, want ClusterIP", svc.Spec.Type)
-	}
-}
-
 func TestInvalidStorageSize(t *testing.T) {
 	values := defaults
 	values.StorageSize = "not-a-quantity"
 	if _, err := render("forgejo", "forgejo", values); err == nil {
 		t.Fatal("expected error for invalid storageSize")
-	}
-}
-
-func TestInvalidServiceType(t *testing.T) {
-	values := defaults
-	values.HTTPServiceType = "BadType"
-	if _, err := render("forgejo", "forgejo", values); err == nil {
-		t.Fatal("expected error for invalid httpServiceType")
 	}
 }
 
