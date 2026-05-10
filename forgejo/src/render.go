@@ -19,7 +19,7 @@ const (
 	httpListenPort  = 8080
 	httpExternalPort = 80
 	sshListenPort   = 2222
-	sshExternalPort = 22
+	sshExternalPort = 2222
 )
 
 const initDirsScript = `mkdir -p /data/git/.ssh /data/gitea/conf /tmp/gitea &&
