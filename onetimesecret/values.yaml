@@ -1,7 +1,7 @@
 domain: onetimesecret.local
 port: 3001
 colonel: admin@onetimesecret.local
-ssl: false
+ssl: true
 smtpHost: ""
 smtpPort: 587
 smtpUsername: ""
