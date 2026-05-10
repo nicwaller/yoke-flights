@@ -6,25 +6,18 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 )
 
-func buildServiceServer(ns string, values Values) corev1.Service {
+func buildServiceServer(ns string) corev1.Service {
 	labels := argoLabels("server", "argocd-server")
-	svcType := corev1.ServiceType(values.ServerServiceType)
-	ports := []corev1.ServicePort{
-		{Name: "http", Port: 80, Protocol: corev1.ProtocolTCP, TargetPort: intstr.FromInt32(8080)},
-		{Name: "https", Port: 443, Protocol: corev1.ProtocolTCP, TargetPort: intstr.FromInt32(8080)},
-	}
-	if svcType == corev1.ServiceTypeLoadBalancer {
-		ports = []corev1.ServicePort{
-			{Name: "http", Port: values.ServerPort, Protocol: corev1.ProtocolTCP, TargetPort: intstr.FromInt32(8080)},
-		}
-	}
 	return corev1.Service{
 		TypeMeta:   metav1.TypeMeta{APIVersion: "v1", Kind: "Service"},
 		ObjectMeta: metav1.ObjectMeta{Name: "argocd-server", Namespace: ns, Labels: labels},
 		Spec: corev1.ServiceSpec{
-			Type:     svcType,
+			Type:     corev1.ServiceTypeClusterIP,
 			Selector: map[string]string{"app.kubernetes.io/name": "argocd-server"},
-			Ports:    ports,
+			Ports: []corev1.ServicePort{
+				{Name: "http", Port: 80, Protocol: corev1.ProtocolTCP, TargetPort: intstr.FromInt32(8080)},
+				{Name: "https", Port: 443, Protocol: corev1.ProtocolTCP, TargetPort: intstr.FromInt32(8080)},
+			},
 		},
 	}
 }

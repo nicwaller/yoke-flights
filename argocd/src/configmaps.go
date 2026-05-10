@@ -35,11 +35,8 @@ func mustMarshalYAML(v any) string {
 	return string(b)
 }
 
-func buildConfigMapArgocdCm(ns string) corev1.ConfigMap {
-	return corev1.ConfigMap{
-		TypeMeta:   metav1.TypeMeta{APIVersion: "v1", Kind: "ConfigMap"},
-		ObjectMeta: metav1.ObjectMeta{Name: "argocd-cm", Namespace: ns, Labels: argoConfigLabels("argocd-cm")},
-		Data: map[string]string{
+func buildConfigMapArgocdCm(ns string, values Values) corev1.ConfigMap {
+	data := map[string]string{
 			"resource.exclusions": mustMarshalYAML([]filteredResource{
 				// Network resources created by the Kubernetes control plane
 				{APIGroups: []string{"", "discovery.k8s.io"}, Kinds: []string{"Endpoints", "EndpointSlice"}},
@@ -105,7 +102,14 @@ func buildConfigMapArgocdCm(ns string) corev1.ConfigMap {
 			"resource.customizations.ignoreResourceUpdates.discovery.k8s.io_EndpointSlice": mustMarshalYAML(ignoreResourceUpdates{
 				JSONPointers: []string{"/metadata", "/endpoints", "/ports"},
 			}),
-		},
+		}
+	if values.ServerURL != "" {
+		data["url"] = values.ServerURL
+	}
+	return corev1.ConfigMap{
+		TypeMeta:   metav1.TypeMeta{APIVersion: "v1", Kind: "ConfigMap"},
+		ObjectMeta: metav1.ObjectMeta{Name: "argocd-cm", Namespace: ns, Labels: argoConfigLabels("argocd-cm")},
+		Data:       data,
 	}
 }
 

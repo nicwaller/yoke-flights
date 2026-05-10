@@ -36,7 +36,7 @@ func render(_, ns string, values Values) ([]json.RawMessage, error) {
 
 		buildClusterRoleBindingApplicationController(ns),
 
-		buildConfigMapArgocdCm(ns),
+		buildConfigMapArgocdCm(ns, values),
 		buildConfigMapCmdParams(ns),
 		buildConfigMapGpgKeys(ns),
 		buildConfigMapRbacCm(ns),
@@ -49,23 +49,19 @@ func render(_, ns string, values Values) ([]json.RawMessage, error) {
 		buildServiceMetrics(ns),
 		buildServiceRedis(ns),
 		buildServiceRepoServer(ns),
+		buildServiceServer(ns),
 
 		buildDeploymentApplicationsetController(ns),
 		buildDeploymentRedis(ns),
 		buildDeploymentRepoServer(ns),
+		buildDeploymentServer(ns),
 		buildStatefulSetApplicationController(ns),
-	}
 
-	if values.Server {
-		objects = append(objects,
-			buildSA("argocd-server", ns),
-			buildRoleServer(ns),
-			buildClusterRoleServer(),
-			buildRoleBinding("argocd-server", ns),
-			buildClusterRoleBindingServer(ns),
-			buildServiceServer(ns, values),
-			buildDeploymentServer(ns, values),
-		)
+		buildSA("argocd-server", ns),
+		buildRoleServer(ns),
+		buildClusterRoleServer(),
+		buildRoleBinding("argocd-server", ns),
+		buildClusterRoleBindingServer(ns),
 	}
 
 	result := make([]json.RawMessage, len(crds), len(crds)+len(objects))
